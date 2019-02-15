@@ -581,6 +581,8 @@ patternProperties:
     description: Nexbox
   "^nextthing,.*":
     description: Next Thing Co.
+  "^neweast,.*":
+    description: Guangdong Neweast Optoelectronics CO., LT
   "^newhaven,.*":
     description: Newhaven Display International
   "^ni,.*":
