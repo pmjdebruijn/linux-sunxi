@@ -35,6 +35,8 @@
 #define SUN8I_THS_TEMP_CALIB			0x74
 #define SUN8I_THS_TEMP_DATA			0x80
 
+#define SUN8I_THS_IS_STS(x)			BIT(8 + x)
+
 #define SUN50I_THS_CTRL0			0x00
 #define SUN50I_H6_THS_ENABLE			0x04
 #define SUN50I_H6_THS_PC			0x08
@@ -134,14 +136,16 @@ static const struct regmap_config config = {
 
 static int sun8i_h3_irq_ack(struct ths_device *tmdev)
 {
-	int state, ret = 0;
+	int i, state, ret = 0;
 
 	regmap_read(tmdev->regmap, SUN8I_THS_IS, &state);
 
-	if (state & BIT(8)) {
-		regmap_write(tmdev->regmap, SUN8I_THS_IS,
-			     BIT(8));
-		ret |= BIT(1);
+	for (i = 0; i < tmdev->chip->sensor_num; i++) {
+		if (state & SUN8I_THS_IS_STS(i)) {
+			regmap_write(tmdev->regmap, SUN8I_THS_IS,
+				SUN8I_THS_IS_STS(i));
+			ret |= BIT(i);
+		}
 	}
 
 	return ret;
@@ -172,9 +176,10 @@ static irqreturn_t sun8i_irq_thread(int irq, void *data)
 	state = tmdev->chip->irq_ack(tmdev);
 
 	for (i = 0; i < tmdev->chip->sensor_num; i++) {
-		if (state & BIT(i))
+		if (state & BIT(i)) {
 			thermal_zone_device_update(tmdev->sensor[i].tzd,
 						   THERMAL_EVENT_UNSPECIFIED);
+		}
 	}
 
 	return IRQ_HANDLED;
@@ -183,7 +188,18 @@ static irqreturn_t sun8i_irq_thread(int irq, void *data)
 static int sun8i_h3_ths_calibrate(struct ths_device *tmdev,
 			       u16 *caldata, int callen)
 {
-	regmap_write(tmdev->regmap, SUN8I_THS_TEMP_CALIB, *caldata);
+	int i;
+
+	if (callen < (2 * tmdev->chip->sensor_num))
+		return -EINVAL;
+
+	for (i = 0; i < tmdev->chip->sensor_num; i++) {
+		int offset = (i % 2) * 16;
+		regmap_update_bits(tmdev->regmap,
+			SUN8I_THS_TEMP_CALIB + (4 * (i >> 1)),
+			0xffffu << offset,
+			caldata[i] << offset);
+	}
 
 	return 0;
 }
@@ -366,6 +382,8 @@ assert_reset:
 
 static int sun8i_h3_thermal_init(struct ths_device *tmdev)
 {
+	int val;
+
 	/* average over 4 samples */
 	regmap_write(tmdev->regmap, SUN8I_THS_MFC,
 		     SUN50I_THS_FILTER_EN |
@@ -374,8 +392,9 @@ static int sun8i_h3_thermal_init(struct ths_device *tmdev)
 	 * period = (x + 1) * 4096 / clkin; ~10ms
 	 * enable data interrupt
 	 */
+	val = GENMASK(7 + tmdev->chip->sensor_num, 8);
 	regmap_write(tmdev->regmap, SUN8I_THS_IC,
-		     SUN50I_H6_THS_PC_TEMP_PERIOD(7) | BIT(8));
+		     SUN50I_H6_THS_PC_TEMP_PERIOD(7) | val);
 	/*
 	 * clkin = 4MHz
 	 * T acquire = clkin / (x + 1)
@@ -384,13 +403,14 @@ static int sun8i_h3_thermal_init(struct ths_device *tmdev)
 	 */
 	regmap_write(tmdev->regmap, SUN8I_THS_CTRL0,
 		     SUN8I_THS_CTRL0_T_ACQ0(255));
+	val = GENMASK(tmdev->chip->sensor_num - 1, 0);
 	regmap_write(tmdev->regmap, SUN8I_THS_CTRL2,
-		     SUN8I_THS_CTRL2_T_ACQ1(63) | BIT(0));
+		     SUN8I_THS_CTRL2_T_ACQ1(63) | val);
 
 	return 0;
 }
 
-static int sun50i_thermal_init(struct ths_device *tmdev)
+static int sun50i_h6_thermal_init(struct ths_device *tmdev)
 {
 	int val;
 
@@ -507,6 +527,17 @@ static const struct ths_thermal_chip sun8i_h3_ths = {
 	.irq_ack = sun8i_h3_irq_ack,
 };
 
+static const struct ths_thermal_chip sun50i_a64_ths = {
+	.sensor_num = 3,
+	.offset = -2170,
+	.scale = -117,
+	.has_ahb_clk = true,
+	.temp_data_base = SUN8I_THS_TEMP_DATA,
+	.calibrate = sun8i_h3_ths_calibrate,
+	.init = sun8i_h3_thermal_init,
+	.irq_ack = sun8i_h3_irq_ack,
+};
+
 static const struct ths_thermal_chip sun50i_h6_ths = {
 	.sensor_num = 2,
 	.offset = -2794,
@@ -514,12 +545,13 @@ static const struct ths_thermal_chip sun50i_h6_ths = {
 	.ft_deviation = SUN50I_H6_FT_DEVIATION,
 	.temp_data_base = SUN50I_H6_THS_TEMP_DATA,
 	.calibrate = sun50i_h6_ths_calibrate,
-	.init = sun50i_thermal_init,
+	.init = sun50i_h6_thermal_init,
 	.irq_ack = sun50i_h6_irq_ack,
 };
 
 static const struct of_device_id of_ths_match[] = {
 	{ .compatible = "allwinner,sun8i-h3-ths", .data = &sun8i_h3_ths },
+	{ .compatible = "allwinner,sun50i-a64-ths", .data = &sun50i_a64_ths },
 	{ .compatible = "allwinner,sun50i-h6-ths", .data = &sun50i_h6_ths },
 	{ /* sentinel */ },
 };
