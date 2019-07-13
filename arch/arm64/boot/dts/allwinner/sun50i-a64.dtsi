@@ -485,6 +485,11 @@
 		sid: eeprom@1c14000 {
 			compatible = "allwinner,sun50i-a64-sid";
 			reg = <0x1c14000 0x400>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			tsen_calib: calib@34 {
+				reg = <0x34 0x6>;
+			};
 		};
 
 		usb_otg: usb@1c19000 {
