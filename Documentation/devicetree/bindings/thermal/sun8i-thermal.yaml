@@ -17,6 +17,7 @@ properties:
   compatible:
     enum:
       - allwinner,sun8i-h3-ths
+      - allwinner,sun50i-a64-ths
       - allwinner,sun50i-h6-ths
 
   reg:
@@ -44,7 +45,8 @@ properties:
 
       For "allwinner,sun8i-h3-ths",
       value must be 0.
-      For "allwinner,sun50i-h6-ths",
+      For "allwinner,sun50i-a64-ths",
+          "allwinner,sun50i-h6-ths",
       value must be 1.
 
   nvmem-cells:
