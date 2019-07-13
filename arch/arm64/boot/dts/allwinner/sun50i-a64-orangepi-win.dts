@@ -341,6 +341,10 @@
 	};
 };
 
+&ths {
+	status = "okay";
+};
+
 /* On debug connector */
 &uart0 {
 	pinctrl-names = "default";

@@ -316,6 +316,9 @@
 			"MIC1", "Internal Microphone",
 			"Headset Microphone", "HBIAS",
 			"MIC2", "Headset Microphone";
+};
+
+&ths {
 	status = "okay";
 };
 

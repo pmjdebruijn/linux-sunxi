@@ -297,6 +297,10 @@
 	status = "disabled";
 };
 
+&ths {
+	status = "okay";
+};
+
 /* On Exp and Euler connectors */
 &uart0 {
 	pinctrl-names = "default";
