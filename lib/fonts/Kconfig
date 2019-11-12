@@ -119,6 +119,15 @@ config FONT_TER16x32
 	  This is the high resolution, large version for use with HiDPI screens.
 	  If the standard font is unreadable for you, say Y, otherwise say N.
 
+config FONT_TER12x24
+	bool "Terminus 12x24 font (not supported by all drivers)"
+	depends on FRAMEBUFFER_CONSOLE && (!SPARC && FONTS || SPARC)
+	help
+	  Terminus Font is a clean, fixed width bitmap font, designed
+	  for long (8 and more hours per day) work with computers.
+	  This is the high resolution, large version for use with HiDPI screens.
+	  If the standard font is unreadable for you, say Y, otherwise say N.
+
 config FONT_AUTOSELECT
 	def_bool y
 	depends on !FONT_8x8
@@ -132,6 +141,7 @@ config FONT_AUTOSELECT
 	depends on !FONT_SUN12x22
 	depends on !FONT_10x18
 	depends on !FONT_TER16x32
+	depends on !FONT_TER12x24
 	select FONT_8x16
 
 endif # FONT_SUPPORT

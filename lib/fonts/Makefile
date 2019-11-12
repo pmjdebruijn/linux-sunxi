@@ -15,6 +15,7 @@ font-objs-$(CONFIG_FONT_ACORN_8x8) += font_acorn_8x8.o
 font-objs-$(CONFIG_FONT_MINI_4x6)  += font_mini_4x6.o
 font-objs-$(CONFIG_FONT_6x10)      += font_6x10.o
 font-objs-$(CONFIG_FONT_TER16x32)  += font_ter16x32.o
+font-objs-$(CONFIG_FONT_TER12x24)  += font_ter12x24.o
 
 font-objs += $(font-objs-y)
 
